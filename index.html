@@ -1,0 +1,785 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>結帳核對小幫手</title>
+<style>
+  :root{
+    --bg:#f3f1ec;
+    --card:#ffffff;
+    --ink:#3a3733;
+    --sub:#8a8480;
+    --accent:#d3e3ec;
+    --accent-dark:#b6cddc;
+    --on-accent:#3a3733;
+    --border:#e5e1d8;
+    --danger:#a9736c;
+    --tax8:#87a9c0;
+    --tax10:#c9a67e;
+  }
+  *{box-sizing:border-box;}
+  html,body{
+    margin:0;padding:0;
+    background:var(--bg);
+    color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"PingFang TC","Heiti TC","Helvetica Neue",sans-serif;
+    font-size:20px;
+    -webkit-text-size-adjust:100%;
+  }
+  header{
+    background:var(--accent);
+    color:var(--on-accent);
+    padding:16px 16px 14px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:8px;
+    position:sticky;
+    top:0;
+    z-index:10;
+    box-shadow:0 2px 6px rgba(0,0,0,.15);
+  }
+  header h1{
+    font-size:24px;
+    margin:0;
+    font-weight:700;
+    flex:1;
+  }
+  .header-btns{
+    display:flex;
+    gap:8px;
+    flex-shrink:0;
+  }
+  #langBtn, #colorBtn{
+    background:rgba(255,255,255,.35);
+    border:2px solid var(--on-accent);
+    color:var(--on-accent);
+    font-size:18px;
+    font-weight:700;
+    padding:10px 14px;
+    border-radius:12px;
+  }
+  #colorBtn{
+    font-size:22px;
+    padding:8px 12px;
+  }
+  main{
+    padding:16px;
+    padding-bottom:220px;
+    max-width:600px;
+    margin:0 auto;
+  }
+  .section-title{
+    font-size:20px;
+    font-weight:700;
+    margin:20px 0 10px;
+    color:var(--sub);
+  }
+  .btn-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr 1fr;
+    gap:10px;
+  }
+  .item-btn{
+    background:var(--card);
+    border:2px solid var(--border);
+    border-radius:16px;
+    padding:18px 6px;
+    font-size:22px;
+    font-weight:700;
+    color:var(--ink);
+    text-align:center;
+    min-height:76px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+  .item-btn:active{
+    background:#eef7f0;
+    border-color:var(--accent);
+  }
+  .item-btn.tax8{border-color:var(--tax8);color:var(--tax8);}
+  .item-btn.tax10{border-color:var(--tax10);color:var(--tax10);}
+  .item-btn.custom{border-style:dashed;color:var(--sub);}
+  .add-btn{
+    background:var(--card);
+    border:3px dashed var(--accent);
+    border-radius:16px;
+    padding:18px 6px;
+    font-size:36px;
+    font-weight:700;
+    color:var(--accent);
+    text-align:center;
+    min-height:76px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+
+  /* list */
+  .list-card{
+    background:var(--card);
+    border:2px solid var(--border);
+    border-radius:16px;
+    padding:8px 14px;
+    margin-top:6px;
+  }
+  .list-row{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:14px 0;
+    border-bottom:1px solid var(--border);
+    gap:8px;
+  }
+  .list-row:last-child{border-bottom:none;}
+  .list-row .name{
+    font-size:20px;
+    font-weight:700;
+    flex:1;
+  }
+  .list-row .meta{
+    font-size:16px;
+    color:var(--sub);
+  }
+  .tag{
+    display:inline-block;
+    font-size:14px;
+    font-weight:700;
+    padding:2px 8px;
+    border-radius:8px;
+    margin-left:6px;
+    color:#fff;
+  }
+  .tag.t8{background:var(--tax8);}
+  .tag.t10{background:var(--tax10);}
+  .row-price{
+    font-size:20px;
+    font-weight:700;
+    min-width:90px;
+    text-align:right;
+  }
+  .del-btn{
+    background:none;
+    border:none;
+    color:var(--danger);
+    font-size:26px;
+    padding:4px 8px;
+  }
+  .empty-hint{
+    color:var(--sub);
+    text-align:center;
+    padding:24px 0;
+    font-size:18px;
+  }
+
+  /* modal */
+  .overlay{
+    position:fixed;inset:0;
+    background:rgba(0,0,0,.5);
+    display:none;
+    align-items:flex-end;
+    justify-content:center;
+    z-index:100;
+  }
+  .overlay.show{display:flex;}
+  .sheet{
+    background:#fff;
+    width:100%;
+    max-width:600px;
+    border-radius:24px 24px 0 0;
+    padding:24px 20px 32px;
+  }
+  .sheet h2{
+    font-size:22px;
+    margin:0 0 16px;
+  }
+  .field{
+    margin-bottom:16px;
+  }
+  .field label{
+    display:block;
+    font-size:16px;
+    color:var(--sub);
+    margin-bottom:6px;
+    font-weight:700;
+  }
+  .field input, .field select{
+    width:100%;
+    font-size:24px;
+    padding:14px;
+    border:2px solid var(--border);
+    border-radius:12px;
+    background:#fdfdfb;
+  }
+  .qty-row{
+    display:flex;
+    align-items:center;
+    gap:12px;
+  }
+  .qty-row button{
+    width:52px;height:52px;
+    font-size:28px;
+    font-weight:700;
+    border-radius:12px;
+    border:2px solid var(--border);
+    background:#fdfdfb;
+  }
+  .qty-row input{
+    text-align:center;
+    flex:1;
+  }
+  .sheet-btns{
+    display:flex;
+    gap:12px;
+    margin-top:8px;
+  }
+  .sheet-btns button{
+    flex:1;
+    font-size:20px;
+    font-weight:700;
+    padding:16px;
+    border-radius:14px;
+    border:none;
+  }
+  .btn-cancel{background:#eee;color:#444;}
+  .btn-confirm{background:var(--accent);color:#fff;}
+  .tax-select{
+    display:flex;
+    gap:10px;
+  }
+  .tax-select label{
+    flex:1;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:8px;
+    border:2px solid var(--border);
+    border-radius:12px;
+    padding:14px 0;
+    font-size:20px;
+    font-weight:700;
+  }
+  .tax-select input{width:22px;height:22px;}
+
+  .color-swatch-grid{
+    display:grid;
+    grid-template-columns:repeat(4, 1fr);
+    gap:12px;
+  }
+  .color-swatch{
+    aspect-ratio:1;
+    border-radius:16px;
+    border:3px solid transparent;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:22px;
+    color:#fff;
+  }
+  .color-swatch.selected{
+    border-color:#1c1c1c;
+  }
+
+  /* total bar */
+  #totalBar{
+    position:fixed;
+    bottom:0;left:0;right:0;
+    background:var(--accent-dark);
+    color:var(--on-accent);
+    padding:14px 18px 20px;
+    box-shadow:0 -4px 12px rgba(0,0,0,.25);
+    z-index:20;
+  }
+  #totalBar .totalWrap{
+    max-width:600px;
+    margin:0 auto;
+  }
+  .total-line{
+    display:flex;
+    justify-content:space-between;
+    align-items:baseline;
+    padding:4px 0;
+  }
+  .total-line .label{
+    font-size:16px;
+    opacity:.85;
+  }
+  .total-line .value{
+    font-size:20px;
+    font-weight:700;
+  }
+  .total-line.main .label{font-size:20px;font-weight:700;opacity:1;}
+  .total-line.main .value{font-size:34px;color:var(--on-accent);}
+  #clearBtn{
+    display:block;
+    margin:10px auto 0;
+    background:none;
+    border:none;
+    color:var(--on-accent);
+    opacity:.75;
+    text-decoration:underline;
+    font-size:15px;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1 id="title">結帳核對小幫手</h1>
+  <div class="header-btns">
+    <button id="colorBtn" onclick="openColorPicker()">🎨</button>
+    <button id="langBtn" onclick="toggleLang()">日本語</button>
+  </div>
+</header>
+
+<main>
+  <div class="section-title" id="quickTitle">快速加入</div>
+  <div class="btn-grid" id="quickGrid"></div>
+
+  <div class="section-title" id="listTitle">購物清單</div>
+  <div class="list-card" id="listCard">
+    <div class="empty-hint" id="emptyHint">目前還沒有商品，點上方按鈕開始加入</div>
+  </div>
+</main>
+
+<div id="totalBar">
+  <div class="totalWrap">
+    <div class="total-line">
+      <span class="label" id="countLabel">共幾點</span>
+      <span class="value" id="countValue">0 点</span>
+    </div>
+    <div class="total-line">
+      <span class="label" id="taxFreeLabel">未稅金額（税抜）</span>
+      <span class="value" id="taxFreeValue">¥0</span>
+    </div>
+    <div class="total-line main">
+      <span class="label" id="taxIncLabel">應付總額（税込）</span>
+      <span class="value" id="taxIncValue">¥0</span>
+    </div>
+    <button id="clearBtn" onclick="clearAll()">清空全部</button>
+  </div>
+</div>
+
+<!-- 輸入單價數量的彈窗 -->
+<div class="overlay" id="entryOverlay">
+  <div class="sheet">
+    <h2 id="entryTitle">輸入品項</h2>
+    <div class="field">
+      <label id="priceLabel">單價（円）</label>
+      <input type="number" id="priceInput" inputmode="numeric" placeholder="0">
+    </div>
+    <div class="field">
+      <label id="qtyLabel">數量</label>
+      <div class="qty-row">
+        <button onclick="stepQty(-1)">－</button>
+        <input type="number" id="qtyInput" value="1" inputmode="numeric">
+        <button onclick="stepQty(1)">＋</button>
+      </div>
+    </div>
+    <div class="sheet-btns">
+      <button class="btn-cancel" id="cancelBtn" onclick="closeEntry()">取消</button>
+      <button class="btn-confirm" id="confirmBtn" onclick="confirmEntry()">加入</button>
+    </div>
+  </div>
+</div>
+
+<!-- 自訂按鈕彈窗 -->
+<div class="overlay" id="customOverlay">
+  <div class="sheet">
+    <h2 id="customTitle">新增自訂按鈕</h2>
+    <div class="field">
+      <label id="nameLabel">名稱</label>
+      <input type="text" id="nameInput" placeholder="例如：面膜">
+    </div>
+    <div class="field">
+      <label id="taxLabel">稅率</label>
+      <div class="tax-select">
+        <label><input type="radio" name="taxRate" value="8" checked> 8%</label>
+        <label><input type="radio" name="taxRate" value="10"> 10%</label>
+      </div>
+    </div>
+    <div class="sheet-btns">
+      <button class="btn-cancel" id="customCancelBtn" onclick="closeCustom()">取消</button>
+      <button class="btn-confirm" id="customConfirmBtn" onclick="confirmCustom()">新增按鈕</button>
+    </div>
+  </div>
+</div>
+
+<!-- 顏色選擇彈窗 -->
+<div class="overlay" id="colorOverlay">
+  <div class="sheet">
+    <h2 id="colorTitle">選擇主題顏色</h2>
+    <div class="color-swatch-grid" id="colorSwatchGrid"></div>
+    <div class="field" style="margin-top:16px;">
+      <label id="customColorLabel">自訂顏色</label>
+      <input type="color" id="customColorInput" value="#7d93a3">
+    </div>
+    <div class="sheet-btns">
+      <button class="btn-cancel" id="colorCancelBtn" onclick="closeColorPicker()">取消</button>
+      <button class="btn-confirm" id="colorConfirmBtn" onclick="applyCustomColor()">套用</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ---------- 語言 ---------- */
+const LANG = {
+  'zh': {
+    title:'結帳核對小幫手', langBtn:'日本語',
+    quickTitle:'快速加入', listTitle:'購物清單',
+    emptyHint:'目前還沒有商品，點上方按鈕開始加入',
+    countLabel:'共幾點', taxFreeLabel:'未稅金額（税抜）', taxIncLabel:'應付總額（税込）',
+    clearBtn:'清空全部',
+    entryTitle:(n)=>`輸入品項：${n}`, priceLabel:'單價（円）', qtyLabel:'數量',
+    cancelBtn:'取消', confirmBtn:'加入',
+    customTitle:'新增自訂按鈕', nameLabel:'名稱', namePH:'例如：面膜', taxLabel:'稅率',
+    customCancelBtn:'取消', customConfirmBtn:'新增按鈕',
+    addBtnText:'＋新增',
+    colorTitle:'選擇主題顏色', customColorLabel:'自訂顏色',
+    colorCancelBtn:'取消', colorConfirmBtn:'套用',
+    defaultNames:{clothes:'衣服', pants:'褲子', drink:'飲料', snack:'餅乾', cosme:'藥妝', t8:'8%', t10:'10%'},
+    delConfirm:'刪除這筆項目？',
+    clearConfirm:'確定要清空全部項目嗎？'
+  },
+  'ja': {
+    title:'レジ確認ツール', langBtn:'中文',
+    quickTitle:'かんたん追加', listTitle:'買い物リスト',
+    emptyHint:'まだ商品がありません。上のボタンから追加してください',
+    countLabel:'点数', taxFreeLabel:'税抜金額', taxIncLabel:'お支払い合計（税込）',
+    clearBtn:'すべて削除',
+    entryTitle:(n)=>`品目を入力：${n}`, priceLabel:'単価（円）', qtyLabel:'数量',
+    cancelBtn:'キャンセル', confirmBtn:'追加',
+    customTitle:'カスタムボタンを追加', nameLabel:'名前', namePH:'例：パック', taxLabel:'税率',
+    customCancelBtn:'キャンセル', customConfirmBtn:'ボタンを追加',
+    addBtnText:'＋追加',
+    colorTitle:'テーマカラーを選択', customColorLabel:'カスタムカラー',
+    colorCancelBtn:'キャンセル', colorConfirmBtn:'適用',
+    defaultNames:{clothes:'服', pants:'ズボン', drink:'飲み物', snack:'お菓子', cosme:'医薬品・化粧品', t8:'8%', t10:'10%'},
+    delConfirm:'この項目を削除しますか？',
+    clearConfirm:'すべての項目を削除しますか？'
+  }
+};
+let currentLang = localStorage.getItem('checkout_lang') || 'zh';
+
+/* ---------- 預設 & 自訂按鈕資料 ---------- */
+// key 用於固定名稱對照，name 只在自訂按鈕時儲存原始輸入字串
+const DEFAULT_BUTTONS = [
+  {id:'clothes', key:'clothes', rate:10, fixed:true},
+  {id:'pants',   key:'pants',   rate:10, fixed:true},
+  {id:'drink',   key:'drink',   rate:8,  fixed:true},
+  {id:'snack',   key:'snack',   rate:8,  fixed:true},
+  {id:'cosme',   key:'cosme',   rate:10, fixed:true},
+  {id:'t8',      key:'t8',      rate:8,  fixed:true, isRateBtn:true},
+  {id:'t10',     key:'t10',     rate:10, fixed:true, isRateBtn:true},
+];
+
+function loadCustomButtons(){
+  try{ return JSON.parse(localStorage.getItem('checkout_custom_buttons')||'[]'); }
+  catch(e){ return []; }
+}
+function saveCustomButtons(list){
+  localStorage.setItem('checkout_custom_buttons', JSON.stringify(list));
+}
+
+function loadItems(){
+  try{ return JSON.parse(localStorage.getItem('checkout_items')||'[]'); }
+  catch(e){ return []; }
+}
+function saveItems(list){
+  localStorage.setItem('checkout_items', JSON.stringify(list));
+}
+
+let items = loadItems();
+let customButtons = loadCustomButtons();
+let pendingButton = null; // 目前正在輸入單價數量的按鈕資訊
+
+/* ---------- 渲染 ---------- */
+function t(key){ return LANG[currentLang][key]; }
+
+function renderTexts(){
+  document.getElementById('title').textContent = t('title');
+  document.getElementById('langBtn').textContent = t('langBtn');
+  document.getElementById('quickTitle').textContent = t('quickTitle');
+  document.getElementById('listTitle').textContent = t('listTitle');
+  document.getElementById('emptyHint').textContent = t('emptyHint');
+  document.getElementById('countLabel').textContent = t('countLabel');
+  document.getElementById('taxFreeLabel').textContent = t('taxFreeLabel');
+  document.getElementById('taxIncLabel').textContent = t('taxIncLabel');
+  document.getElementById('clearBtn').textContent = t('clearBtn');
+  document.getElementById('priceLabel').textContent = t('priceLabel');
+  document.getElementById('qtyLabel').textContent = t('qtyLabel');
+  document.getElementById('cancelBtn').textContent = t('cancelBtn');
+  document.getElementById('confirmBtn').textContent = t('confirmBtn');
+  document.getElementById('customTitle').textContent = t('customTitle');
+  document.getElementById('nameLabel').textContent = t('nameLabel');
+  document.getElementById('nameInput').placeholder = t('namePH');
+  document.getElementById('taxLabel').textContent = t('taxLabel');
+  document.getElementById('customCancelBtn').textContent = t('customCancelBtn');
+  document.getElementById('customConfirmBtn').textContent = t('customConfirmBtn');
+  document.getElementById('colorTitle').textContent = t('colorTitle');
+  document.getElementById('customColorLabel').textContent = t('customColorLabel');
+  document.getElementById('colorCancelBtn').textContent = t('colorCancelBtn');
+  document.getElementById('colorConfirmBtn').textContent = t('colorConfirmBtn');
+}
+
+function buttonLabel(btn){
+  if(btn.custom){ return btn.name; }
+  const names = LANG[currentLang].defaultNames;
+  return names[btn.key];
+}
+
+function renderGrid(){
+  const grid = document.getElementById('quickGrid');
+  grid.innerHTML = '';
+  const all = [...DEFAULT_BUTTONS, ...customButtons.map(c=>({...c, custom:true}))];
+  all.forEach(btn=>{
+    const el = document.createElement('button');
+    el.className = 'item-btn ' + (btn.rate===8?'tax8':'tax10') + (btn.custom?' custom':'');
+    el.textContent = buttonLabel(btn);
+    el.onclick = ()=> openEntry(btn);
+    grid.appendChild(el);
+  });
+  const addEl = document.createElement('button');
+  addEl.className = 'add-btn';
+  addEl.textContent = '＋';
+  addEl.onclick = openCustom;
+  grid.appendChild(addEl);
+}
+
+function fmt(n){
+  return '¥' + Math.round(n).toLocaleString('ja-JP');
+}
+
+function renderList(){
+  const card = document.getElementById('listCard');
+  card.innerHTML = '';
+  if(items.length===0){
+    const hint = document.createElement('div');
+    hint.className='empty-hint';
+    hint.id='emptyHint';
+    hint.textContent = t('emptyHint');
+    card.appendChild(hint);
+  } else {
+    items.forEach((it, idx)=>{
+      const row = document.createElement('div');
+      row.className = 'list-row';
+      const lineTotal = it.price * it.qty;
+      row.innerHTML = `
+        <div style="flex:1">
+          <div class="name">${it.label} <span class="tag ${it.rate===8?'t8':'t10'}">${it.rate}%</span></div>
+          <div class="meta">¥${it.price.toLocaleString('ja-JP')} × ${it.qty}</div>
+        </div>
+        <div class="row-price">${fmt(lineTotal)}</div>
+        <button class="del-btn" onclick="removeItem(${idx})">✕</button>
+      `;
+      card.appendChild(row);
+    });
+  }
+  renderTotals();
+}
+
+function renderTotals(){
+  let count = 0, taxFree = 0, taxInc = 0;
+  items.forEach(it=>{
+    count += it.qty;
+    const lineTotal = it.price * it.qty;
+    taxFree += lineTotal;
+    taxInc += lineTotal * (1 + it.rate/100);
+  });
+  document.getElementById('countValue').textContent = count + (currentLang==='zh' ? ' 点' : '点');
+  document.getElementById('taxFreeValue').textContent = fmt(taxFree);
+  document.getElementById('taxIncValue').textContent = fmt(taxInc);
+}
+
+/* ---------- 互動 ---------- */
+function openEntry(btn){
+  pendingButton = btn;
+  document.getElementById('entryTitle').textContent = t('entryTitle')(buttonLabel(btn));
+  document.getElementById('priceInput').value = '';
+  document.getElementById('qtyInput').value = 1;
+  document.getElementById('entryOverlay').classList.add('show');
+  setTimeout(()=>document.getElementById('priceInput').focus(), 100);
+}
+function closeEntry(){
+  document.getElementById('entryOverlay').classList.remove('show');
+  pendingButton = null;
+}
+function stepQty(delta){
+  const el = document.getElementById('qtyInput');
+  let v = parseInt(el.value||'1',10) + delta;
+  if(v<1) v=1;
+  el.value = v;
+}
+function confirmEntry(){
+  const price = parseFloat(document.getElementById('priceInput').value);
+  const qty = parseInt(document.getElementById('qtyInput').value||'1',10);
+  if(isNaN(price) || price<=0 || isNaN(qty) || qty<=0){
+    document.getElementById('priceInput').focus();
+    return;
+  }
+  items.push({
+    label: buttonLabel(pendingButton),
+    rate: pendingButton.rate,
+    price: price,
+    qty: qty
+  });
+  saveItems(items);
+  renderList();
+  closeEntry();
+}
+function removeItem(idx){
+  if(confirm(t('delConfirm'))){
+    items.splice(idx,1);
+    saveItems(items);
+    renderList();
+  }
+}
+function clearAll(){
+  if(items.length===0) return;
+  if(confirm(t('clearConfirm'))){
+    items = [];
+    saveItems(items);
+    renderList();
+  }
+}
+
+function openCustom(){
+  document.getElementById('nameInput').value = '';
+  document.querySelector('input[name="taxRate"][value="8"]').checked = true;
+  document.getElementById('customOverlay').classList.add('show');
+  setTimeout(()=>document.getElementById('nameInput').focus(), 100);
+}
+function closeCustom(){
+  document.getElementById('customOverlay').classList.remove('show');
+}
+function confirmCustom(){
+  const name = document.getElementById('nameInput').value.trim();
+  if(!name) { document.getElementById('nameInput').focus(); return; }
+  const rate = parseInt(document.querySelector('input[name="taxRate"]:checked').value,10);
+  customButtons.push({ id:'c'+Date.now(), name:name, rate:rate });
+  saveCustomButtons(customButtons);
+  renderGrid();
+  closeCustom();
+}
+
+function toggleLang(){
+  currentLang = currentLang==='zh' ? 'ja' : 'zh';
+  localStorage.setItem('checkout_lang', currentLang);
+  renderTexts();
+  renderGrid();
+  renderList();
+}
+
+/* ---------- 主題顏色 ---------- */
+const THEME_PRESETS = [
+  // 高對比鮮豔色（適合視力較弱、需要看清楚字的長輩）
+  {name:'vividblue', accent:'#1a5f8a', dark:'#123f5c', vivid:true},
+  {name:'vividred',  accent:'#c0392b', dark:'#8f2a20', vivid:true},
+  // 柔粉莫蘭迪奶奶色系（更淺）
+  {name:'milktea',   accent:'#e0d0ba', dark:'#c9b598'},
+  {name:'sakura',    accent:'#f0d8da', dark:'#dcb9bd'},
+  {name:'violet',    accent:'#dfd1e6', dark:'#c7b3d1'},
+  {name:'skyblue',   accent:'#d3e3ec', dark:'#b6cddc'},
+  {name:'sage',      accent:'#d9e2d0', dark:'#bccdae'},
+  {name:'lavendergrey', accent:'#ddd3e0', dark:'#c4b6c8'},
+];
+
+function applyTheme(accent, dark){
+  document.documentElement.style.setProperty('--accent', accent);
+  document.documentElement.style.setProperty('--accent-dark', dark);
+  // 淺色系自動改用深色文字，確保長輩看得清楚（對比度）
+  const textColor = getContrastTextColor(accent);
+  document.documentElement.style.setProperty('--on-accent', textColor);
+}
+
+function getContrastTextColor(hex){
+  const num = parseInt(hex.replace('#',''),16);
+  const r = (num>>16)&0xff, g = (num>>8)&0xff, b = num&0xff;
+  // 相對亮度計算，判斷用白字或深字對比較清楚
+  const luminance = (0.299*r + 0.587*g + 0.114*b) / 255;
+  return luminance > 0.6 ? '#3a3733' : '#ffffff';
+}
+
+function darkenColor(hex, amount){
+  const num = parseInt(hex.replace('#',''),16);
+  let r = Math.max(0, (num>>16) - amount);
+  let g = Math.max(0, ((num>>8)&0xff) - amount);
+  let b = Math.max(0, (num&0xff) - amount);
+  return '#' + [r,g,b].map(v=>v.toString(16).padStart(2,'0')).join('');
+}
+
+function loadTheme(){
+  try{
+    const saved = JSON.parse(localStorage.getItem('checkout_theme'));
+    if(saved && saved.accent && saved.dark){
+      applyTheme(saved.accent, saved.dark);
+    }
+  }catch(e){}
+}
+
+function saveTheme(accent, dark){
+  localStorage.setItem('checkout_theme', JSON.stringify({accent, dark}));
+}
+
+function renderColorSwatches(){
+  const grid = document.getElementById('colorSwatchGrid');
+  grid.innerHTML = '';
+  const currentAccent = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim();
+  THEME_PRESETS.forEach(p=>{
+    const el = document.createElement('button');
+    el.className = 'color-swatch' + (p.accent.toLowerCase()===currentAccent.toLowerCase() ? ' selected' : '');
+    el.style.background = p.accent;
+    el.textContent = (p.accent.toLowerCase()===currentAccent.toLowerCase()) ? '✓' : '';
+    el.onclick = ()=>{
+      applyTheme(p.accent, p.dark);
+      saveTheme(p.accent, p.dark);
+      closeColorPicker();
+    };
+    grid.appendChild(el);
+  });
+}
+
+function openColorPicker(){
+  renderColorSwatches();
+  const currentAccent = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim();
+  document.getElementById('customColorInput').value = currentAccent || '#7d93a3';
+  document.getElementById('colorOverlay').classList.add('show');
+}
+function closeColorPicker(){
+  document.getElementById('colorOverlay').classList.remove('show');
+}
+function applyCustomColor(){
+  const accent = document.getElementById('customColorInput').value;
+  const dark = darkenColor(accent, 40);
+  applyTheme(accent, dark);
+  saveTheme(accent, dark);
+  closeColorPicker();
+}
+
+loadTheme();
+
+/* ---------- 初始化 ---------- */
+renderTexts();
+renderGrid();
+renderList();
+
+/* ---------- 離線支援：Service Worker（若以 https 或 GitHub Pages 提供則生效） ---------- */
+if('serviceWorker' in navigator){
+  const swCode = `
+    self.addEventListener('install', e => self.skipWaiting());
+    self.addEventListener('activate', e => self.clients.claim());
+    self.addEventListener('fetch', e => {
+      e.respondWith(fetch(e.request).catch(()=>caches.match(e.request)));
+    });
+  `;
+  try{
+    const blob = new Blob([swCode], {type:'application/javascript'});
+    const swUrl = URL.createObjectURL(blob);
+    navigator.serviceWorker.register(swUrl).catch(()=>{});
+  }catch(e){}
+}
+</script>
+</body>
+</html>
