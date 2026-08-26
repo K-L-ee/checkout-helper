@@ -18,8 +18,12 @@
     --danger:#a9736c;
     --tax8:#87a9c0;
     --tax10:#c9a67e;
+    --font-scale:1;
   }
   *{box-sizing:border-box;}
+  html{
+    zoom:var(--font-scale);
+  }
   html,body{
     margin:0;padding:0;
     background:var(--bg);
@@ -52,7 +56,7 @@
     gap:8px;
     flex-shrink:0;
   }
-  #langBtn, #colorBtn{
+  #langBtn, #colorBtn, #fontBtn{
     background:rgba(255,255,255,.35);
     border:2px solid var(--on-accent);
     color:var(--on-accent);
@@ -61,7 +65,7 @@
     padding:10px 14px;
     border-radius:12px;
   }
-  #colorBtn{
+  #colorBtn, #fontBtn{
     font-size:22px;
     padding:8px 12px;
   }
@@ -284,6 +288,24 @@
     border-color:#1c1c1c;
   }
 
+  .font-option-grid{
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+  }
+  .font-option{
+    border:2px solid var(--border);
+    border-radius:14px;
+    padding:16px;
+    text-align:center;
+    font-weight:700;
+    background:#fdfdfb;
+  }
+  .font-option.selected{
+    border-color:var(--accent-dark);
+    background:#f3f1ec;
+  }
+
   /* total bar */
   #totalBar{
     position:fixed;
@@ -331,6 +353,7 @@
 <header>
   <h1 id="title">結帳核對小幫手</h1>
   <div class="header-btns">
+    <button id="fontBtn" onclick="openFontPicker()">Aa</button>
     <button id="colorBtn" onclick="openColorPicker()">🎨</button>
     <button id="langBtn" onclick="toggleLang()">日本語</button>
   </div>
@@ -371,6 +394,12 @@
     <div class="field">
       <label id="priceLabel">單價（円）</label>
       <input type="number" id="priceInput" inputmode="numeric" placeholder="0" oninput="updateConfirmState()">
+    </div>
+    <div class="field">
+      <div class="tax-select" id="priceTypeToggle">
+        <label><input type="radio" name="priceType" value="exclusive" checked onchange="updateConfirmState()"> <span id="priceTypeExclusiveLabel">未稅價</span></label>
+        <label><input type="radio" name="priceType" value="inclusive" onchange="updateConfirmState()"> <span id="priceTypeInclusiveLabel">含稅價</span></label>
+      </div>
     </div>
     <div class="field">
       <label id="qtyLabel">數量</label>
@@ -425,6 +454,17 @@
   </div>
 </div>
 
+<!-- 字體大小選擇彈窗 -->
+<div class="overlay" id="fontOverlay">
+  <div class="sheet">
+    <h2 id="fontTitle">選擇字體大小</h2>
+    <div class="font-option-grid" id="fontOptionGrid"></div>
+    <div class="sheet-btns">
+      <button class="btn-cancel" id="fontCloseBtn" onclick="closeFontPicker()">關閉</button>
+    </div>
+  </div>
+</div>
+
 <script>
 /* ---------- 語言 ---------- */
 const LANG = {
@@ -435,12 +475,15 @@ const LANG = {
     countLabel:'共幾點', taxFreeLabel:'未稅金額（税抜）', taxIncLabel:'應付總額（税込）',
     clearBtn:'清空全部',
     entryTitle:(n)=>`輸入品項：${n}`, priceLabel:'單價（円）', qtyLabel:'數量',
+    priceTypeExclusive:'未稅價', priceTypeInclusive:'含稅價',
     cancelBtn:'取消', confirmBtn:'加入',
     customTitle:'新增自訂按鈕', nameLabel:'名稱', namePH:'例如：面膜', taxLabel:'稅率',
     customCancelBtn:'取消', customConfirmBtn:'新增按鈕',
     addBtnText:'＋新增',
     colorTitle:'選擇主題顏色', customColorLabel:'自訂顏色',
     colorCancelBtn:'取消', colorConfirmBtn:'套用',
+    fontTitle:'選擇字體大小', fontCloseBtn:'關閉',
+    fontOptions:{normal:'標準', large:'大', xlarge:'特大'},
     defaultNames:{clothes:'衣服', pants:'褲子', drink:'飲料', snack:'餅乾', cosme:'藥妝', t8:'8%', t10:'10%'},
     delConfirm:'刪除這筆項目？',
     clearConfirm:'確定要清空全部項目嗎？'
@@ -452,12 +495,15 @@ const LANG = {
     countLabel:'点数', taxFreeLabel:'税抜金額', taxIncLabel:'お支払い合計（税込）',
     clearBtn:'すべて削除',
     entryTitle:(n)=>`品目を入力：${n}`, priceLabel:'単価（円）', qtyLabel:'数量',
+    priceTypeExclusive:'税抜価格', priceTypeInclusive:'税込価格',
     cancelBtn:'キャンセル', confirmBtn:'追加',
     customTitle:'カスタムボタンを追加', nameLabel:'名前', namePH:'例：パック', taxLabel:'税率',
     customCancelBtn:'キャンセル', customConfirmBtn:'ボタンを追加',
     addBtnText:'＋追加',
     colorTitle:'テーマカラーを選択', customColorLabel:'カスタムカラー',
     colorCancelBtn:'キャンセル', colorConfirmBtn:'適用',
+    fontTitle:'文字サイズを選択', fontCloseBtn:'閉じる',
+    fontOptions:{normal:'標準', large:'大', xlarge:'特大'},
     defaultNames:{clothes:'服', pants:'ズボン', drink:'飲み物', snack:'お菓子', cosme:'医薬品・化粧品', t8:'8%', t10:'10%'},
     delConfirm:'この項目を削除しますか？',
     clearConfirm:'すべての項目を削除しますか？'
@@ -512,6 +558,8 @@ function renderTexts(){
   document.getElementById('clearBtn').textContent = t('clearBtn');
   document.getElementById('priceLabel').textContent = t('priceLabel');
   document.getElementById('qtyLabel').textContent = t('qtyLabel');
+  document.getElementById('priceTypeExclusiveLabel').textContent = t('priceTypeExclusive');
+  document.getElementById('priceTypeInclusiveLabel').textContent = t('priceTypeInclusive');
   document.getElementById('cancelBtn').textContent = t('cancelBtn');
   document.getElementById('confirmBtn').textContent = t('confirmBtn');
   document.getElementById('customTitle').textContent = t('customTitle');
@@ -524,6 +572,8 @@ function renderTexts(){
   document.getElementById('customColorLabel').textContent = t('customColorLabel');
   document.getElementById('colorCancelBtn').textContent = t('colorCancelBtn');
   document.getElementById('colorConfirmBtn').textContent = t('colorConfirmBtn');
+  document.getElementById('fontTitle').textContent = t('fontTitle');
+  document.getElementById('fontCloseBtn').textContent = t('fontCloseBtn');
 }
 
 function buttonLabel(btn){
@@ -568,10 +618,12 @@ function renderList(){
       const row = document.createElement('div');
       row.className = 'list-row';
       const lineTotal = it.price * it.qty;
+      const priceTypeTag = it.priceType==='inclusive' ? t('priceTypeInclusive') : t('priceTypeExclusive');
+      const displayPrice = (it.enteredPrice!==undefined) ? it.enteredPrice : it.price;
       row.innerHTML = `
         <div style="flex:1">
           <div class="name">${it.label} <span class="tag ${it.rate===8?'t8':'t10'}">${it.rate}%</span></div>
-          <div class="meta">¥${it.price.toLocaleString('ja-JP')} × ${it.qty}</div>
+          <div class="meta">¥${Math.round(displayPrice).toLocaleString('ja-JP')}（${priceTypeTag}）× ${it.qty}</div>
         </div>
         <div class="row-price">${fmt(lineTotal)}</div>
         <button class="del-btn" onclick="removeItem(${idx})">✕</button>
@@ -601,6 +653,7 @@ function openEntry(btn){
   document.getElementById('entryTitle').textContent = t('entryTitle')(buttonLabel(btn));
   document.getElementById('priceInput').value = '';
   document.getElementById('qtyInput').value = 1;
+  document.querySelector('input[name="priceType"][value="exclusive"]').checked = true;
   document.getElementById('entryOverlay').classList.add('show');
   updateConfirmState();
   setTimeout(()=>document.getElementById('priceInput').focus(), 100);
@@ -624,16 +677,22 @@ function stepQty(delta){
   updateConfirmState();
 }
 function confirmEntry(){
-  const price = parseFloat(document.getElementById('priceInput').value);
+  const enteredPrice = parseFloat(document.getElementById('priceInput').value);
   const qty = parseInt(document.getElementById('qtyInput').value||'1',10);
-  if(isNaN(price) || price<=0 || isNaN(qty) || qty<=0){
+  const priceType = document.querySelector('input[name="priceType"]:checked').value; // 'exclusive' or 'inclusive'
+  if(isNaN(enteredPrice) || enteredPrice<=0 || isNaN(qty) || qty<=0){
     document.getElementById('priceInput').focus();
     return;
   }
+  const rate = pendingButton.rate;
+  // 統一內部都用「未稅單價」計算，避免含稅/未稅混淆造成算錯
+  const exclusivePrice = priceType==='inclusive' ? enteredPrice / (1 + rate/100) : enteredPrice;
   items.push({
     label: buttonLabel(pendingButton),
-    rate: pendingButton.rate,
-    price: price,
+    rate: rate,
+    price: exclusivePrice,       // 內部一律存未稅單價，用於加總計算
+    enteredPrice: enteredPrice,  // 使用者實際輸入的金額（顯示用）
+    priceType: priceType,        // 使用者輸入時選的是未稅還是含稅
     qty: qty
   });
   saveItems(items);
@@ -770,6 +829,55 @@ function applyCustomColor(){
 }
 
 loadTheme();
+
+/* ---------- 字體大小 ---------- */
+const FONT_SCALES = [
+  {key:'normal', scale:1},
+  {key:'large',  scale:1.15},
+  {key:'xlarge', scale:1.3},
+];
+
+function applyFontScale(scale){
+  document.documentElement.style.setProperty('--font-scale', scale);
+}
+
+function loadFontScale(){
+  const saved = parseFloat(localStorage.getItem('checkout_font_scale'));
+  if(!isNaN(saved)){
+    applyFontScale(saved);
+  }
+}
+
+function saveFontScale(scale){
+  localStorage.setItem('checkout_font_scale', scale);
+}
+
+function renderFontOptions(){
+  const grid = document.getElementById('fontOptionGrid');
+  grid.innerHTML = '';
+  const currentScale = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--font-scale')) || 1;
+  FONT_SCALES.forEach(f=>{
+    const el = document.createElement('button');
+    el.className = 'font-option' + (Math.abs(f.scale-currentScale)<0.001 ? ' selected' : '');
+    el.textContent = LANG[currentLang].fontOptions[f.key] + (Math.abs(f.scale-currentScale)<0.001 ? '  ✓' : '');
+    el.onclick = ()=>{
+      applyFontScale(f.scale);
+      saveFontScale(f.scale);
+      renderFontOptions();
+    };
+    grid.appendChild(el);
+  });
+}
+
+function openFontPicker(){
+  renderFontOptions();
+  document.getElementById('fontOverlay').classList.add('show');
+}
+function closeFontPicker(){
+  document.getElementById('fontOverlay').classList.remove('show');
+}
+
+loadFontScale();
 
 /* ---------- 初始化 ---------- */
 renderTexts();
