@@ -13,6 +13,7 @@
     --accent:#d3e3ec;
     --accent-dark:#b6cddc;
     --on-accent:#3a3733;
+    --on-accent-dark:#3a3733;
     --border:#e5e1d8;
     --danger:#a9736c;
     --tax8:#87a9c0;
@@ -78,19 +79,19 @@
   }
   .btn-grid{
     display:grid;
-    grid-template-columns:1fr 1fr 1fr;
-    gap:10px;
+    grid-template-columns:repeat(4, 1fr);
+    gap:8px;
   }
   .item-btn{
     background:var(--card);
     border:2px solid var(--border);
-    border-radius:16px;
-    padding:18px 6px;
+    border-radius:12px;
+    padding:10px 4px;
     font-size:22px;
     font-weight:700;
     color:var(--ink);
     text-align:center;
-    min-height:76px;
+    min-height:48px;
     display:flex;
     align-items:center;
     justify-content:center;
@@ -104,14 +105,14 @@
   .item-btn.custom{border-style:dashed;color:var(--sub);}
   .add-btn{
     background:var(--card);
-    border:3px dashed var(--accent);
-    border-radius:16px;
-    padding:18px 6px;
-    font-size:36px;
+    border:2px dashed var(--accent);
+    border-radius:12px;
+    padding:10px 4px;
+    font-size:26px;
     font-weight:700;
     color:var(--accent);
     text-align:center;
-    min-height:76px;
+    min-height:48px;
     display:flex;
     align-items:center;
     justify-content:center;
@@ -244,7 +245,8 @@
     border:none;
   }
   .btn-cancel{background:#eee;color:#444;}
-  .btn-confirm{background:var(--accent);color:#fff;}
+  .btn-confirm{background:var(--accent-dark);color:var(--on-accent-dark);border:2px solid var(--accent-dark);transition:background .15s, color .15s, border-color .15s;}
+  .btn-confirm.disabled{background:#e8e6e1;color:#a8a49c;border:2px solid #d8d4cc;}
   .tax-select{
     display:flex;
     gap:10px;
@@ -287,7 +289,7 @@
     position:fixed;
     bottom:0;left:0;right:0;
     background:var(--accent-dark);
-    color:var(--on-accent);
+    color:var(--on-accent-dark);
     padding:14px 18px 20px;
     box-shadow:0 -4px 12px rgba(0,0,0,.25);
     z-index:20;
@@ -311,13 +313,13 @@
     font-weight:700;
   }
   .total-line.main .label{font-size:20px;font-weight:700;opacity:1;}
-  .total-line.main .value{font-size:34px;color:var(--on-accent);}
+  .total-line.main .value{font-size:34px;color:var(--on-accent-dark);}
   #clearBtn{
     display:block;
     margin:10px auto 0;
     background:none;
     border:none;
-    color:var(--on-accent);
+    color:var(--on-accent-dark);
     opacity:.75;
     text-decoration:underline;
     font-size:15px;
@@ -368,13 +370,13 @@
     <h2 id="entryTitle">輸入品項</h2>
     <div class="field">
       <label id="priceLabel">單價（円）</label>
-      <input type="number" id="priceInput" inputmode="numeric" placeholder="0">
+      <input type="number" id="priceInput" inputmode="numeric" placeholder="0" oninput="updateConfirmState()">
     </div>
     <div class="field">
       <label id="qtyLabel">數量</label>
       <div class="qty-row">
         <button onclick="stepQty(-1)">－</button>
-        <input type="number" id="qtyInput" value="1" inputmode="numeric">
+        <input type="number" id="qtyInput" value="1" inputmode="numeric" oninput="updateConfirmState()">
         <button onclick="stepQty(1)">＋</button>
       </div>
     </div>
@@ -600,17 +602,26 @@ function openEntry(btn){
   document.getElementById('priceInput').value = '';
   document.getElementById('qtyInput').value = 1;
   document.getElementById('entryOverlay').classList.add('show');
+  updateConfirmState();
   setTimeout(()=>document.getElementById('priceInput').focus(), 100);
 }
 function closeEntry(){
   document.getElementById('entryOverlay').classList.remove('show');
   pendingButton = null;
 }
+function updateConfirmState(){
+  const price = parseFloat(document.getElementById('priceInput').value);
+  const qty = parseInt(document.getElementById('qtyInput').value||'0',10);
+  const valid = !isNaN(price) && price>0 && !isNaN(qty) && qty>0;
+  const btn = document.getElementById('confirmBtn');
+  btn.classList.toggle('disabled', !valid);
+}
 function stepQty(delta){
   const el = document.getElementById('qtyInput');
   let v = parseInt(el.value||'1',10) + delta;
   if(v<1) v=1;
   el.value = v;
+  updateConfirmState();
 }
 function confirmEntry(){
   const price = parseFloat(document.getElementById('priceInput').value);
@@ -690,8 +701,8 @@ function applyTheme(accent, dark){
   document.documentElement.style.setProperty('--accent', accent);
   document.documentElement.style.setProperty('--accent-dark', dark);
   // 淺色系自動改用深色文字，確保長輩看得清楚（對比度）
-  const textColor = getContrastTextColor(accent);
-  document.documentElement.style.setProperty('--on-accent', textColor);
+  document.documentElement.style.setProperty('--on-accent', getContrastTextColor(accent));
+  document.documentElement.style.setProperty('--on-accent-dark', getContrastTextColor(dark));
 }
 
 function getContrastTextColor(hex){
