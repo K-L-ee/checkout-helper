@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<title>結帳核對小幫手</title>
+<title>結帳小幫手</title>
 <style>
   :root{
     --bg:#f3f1ec;
@@ -352,7 +352,7 @@
 <body>
 
 <header>
-  <h1 id="title">結帳核對小幫手</h1>
+  <h1 id="title">結帳小幫手</h1>
   <div class="header-btns">
     <button id="fontBtn" onclick="openFontPicker()">Aa</button>
     <button id="colorBtn" onclick="openColorPicker()">🎨</button>
@@ -470,7 +470,7 @@
 /* ---------- 語言 ---------- */
 const LANG = {
   'zh': {
-    title:'結帳核對小幫手', langBtn:'日本語',
+    title:'結帳小幫手', langBtn:'日本語',
     quickTitle:'快速加入', listTitle:'購物清單',
     emptyHint:'目前還沒有商品，點上方按鈕開始加入',
     countLabel:'共幾點', taxFreeLabel:'未稅金額（税抜）', taxIncLabel:'應付總額（税込）',
@@ -884,6 +884,44 @@ loadFontScale();
 renderTexts();
 renderGrid();
 renderList();
+setupAppIcon();
+
+/* ---------- 產生手機主畫面圖示（算盤圖示） ---------- */
+function setupAppIcon(){
+  try{
+    const size = 180;
+    const canvas = document.createElement('canvas');
+    canvas.width = size;
+    canvas.height = size;
+    const ctx = canvas.getContext('2d');
+    // 圓角背景
+    const radius = size*0.22;
+    ctx.fillStyle = '#c9a67e';
+    ctx.beginPath();
+    ctx.moveTo(radius, 0);
+    ctx.arcTo(size, 0, size, size, radius);
+    ctx.arcTo(size, size, 0, size, radius);
+    ctx.arcTo(0, size, 0, 0, radius);
+    ctx.arcTo(0, 0, size, 0, radius);
+    ctx.closePath();
+    ctx.fill();
+    // 算盤 emoji
+    ctx.font = `${Math.round(size*0.62)}px system-ui, -apple-system, "Apple Color Emoji", sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('🧮', size/2, size/2 + size*0.05);
+    const dataUrl = canvas.toDataURL('image/png');
+
+    const addLink = (rel)=>{
+      const link = document.createElement('link');
+      link.rel = rel;
+      link.href = dataUrl;
+      document.head.appendChild(link);
+    };
+    addLink('icon');
+    addLink('apple-touch-icon');
+  }catch(e){}
+}
 
 /* ---------- 離線支援：Service Worker（若以 https 或 GitHub Pages 提供則生效） ---------- */
 if('serviceWorker' in navigator){
